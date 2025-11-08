@@ -56,7 +56,7 @@ def prompt_gemini(descriptions, api_key, model="gemini-2.5-flash-lite"):
         # Gemini v1beta may return content as dict with "text"
         content = candidates[0].get("content", "")
         if isinstance(content, dict):
-            text_output = candidate["content"]["parts"][0]["text"]
+            text_output = candidate.get("content", {}).get("parts", [{}])[0].get("text", "")
         else:
             text_output = str(content)
 
