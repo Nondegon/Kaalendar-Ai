@@ -36,7 +36,10 @@ pip install -r requirements.txt
 
 # Set your Gemini API key
 export GEMINI_API_KEY="YOUR_API_KEY_HERE"
+```
 
+## Running the App
+```bash
 # Activate the environment
 source venv/bin/activate
 
@@ -45,12 +48,4 @@ git pull
 
 # Run the main program
 python3 main.py
-
-# Activate the environment
-source venv/bin/activate
-
-# Pull latest updates
-git pull
-
-# Run the main program
-python3 main.py
+```
