@@ -27,7 +27,7 @@ def prompt_gemini(descriptions, api_key, model="gemini-2.0-flash"):
     )
 
     # New endpoint (v1beta)
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={API_KEY}"
     headers = {
         "Content-Type": "application/json",
         "x-goog-api-key": api_key
