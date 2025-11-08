@@ -69,7 +69,7 @@ def prompt_gemini(descriptions, api_key, model="gemini-2.5-flash-lite"):
                 return numbers_list
 
         # Fallback if parsing failed
-print("Could not parse Gemini response. Full output:\n", json.dumps(resp_json, indent=2))        
+        print("Could not parse Gemini response. Full output:\n", json.dumps(resp_json, indent=2))        
         return fallback_durations(len(descriptions))
 
     except Exception as e:
