@@ -2,7 +2,7 @@ import requests
 import json
 
 
-def prompt_gemini(description, api_key):
+def prompt_gemini(descriptions, api_key):
     url = "https://gemini.googleapis.com/v1alpha2/models/text-bison-001:generate"
 
     headers = {
@@ -10,9 +10,13 @@ def prompt_gemini(description, api_key):
         "Authorization": f"Bearer {api_key}"
     }
 
+    string = ""
+    for ind, desc in enumerate(descriptions):
+        string += "\n" + str(ind + 1) + "." + desc
+    
     data = {
         "prompt": {
-            "text": "You are a smart planner. Your goal is to estimate a lower bound on how much time an assignment will take for a high-school student. The description is as follows: " + description +  " Return an estimate of how many minutes the assignment will take, and ONLY return the amount of minutes."
+            "text": "You are a smart planner for a high-school student. You are given a series of descriptions of assignments, and your goal is to estimate a lower bound on the assignment lengths of each assignment. Return your estimations in the form of a list of integers, describing how many minutes it takes. \n \n Extremely important guidelines: \n 1. The length of the list should be equivalent to the number of assignments given.\n 2. Provide a list, and only the list of integers, where each integer corresponds to how many minutes the assignment takes. An example output would be [20, 30, 40, 50].\n 3. Make sure each element in the list corresponds to their assignment.\n 4. Provide the list first, before explaining your reasoning. The assignment descriptions are listed out here:" + string
         },
         "temperature": 0.7,
         "maxOutputTokens": 500
