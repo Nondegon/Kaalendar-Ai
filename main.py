@@ -177,7 +177,7 @@ def add_event():
 
 def add_sleep_schedule():
     global sleep_block
-    start = simpledialog.askstring("Sleep Start", "Enter sleep start time (HH:MM):")
+    start = simpledialog.askstring("Sleep Start", "Enter the time at which you sleep (HH:MM):")
     end = simpledialog.askstring("Sleep End", "Enter wake-up time (HH:MM):")
     if start and end:
         sleep_block = {"start": start, "end": end}
