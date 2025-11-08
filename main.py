@@ -26,7 +26,7 @@ def minutes_to_time(m):
 # --- Main window ---
 root = tk.Tk()
 root.title("Schedule & Assignments")
-root.geometry("400x600")
+root.geometry("450x600")
 
 # Store events and assignments
 events = []
@@ -46,17 +46,19 @@ def update_planner_display():
 
     # Collect events
     for e in events:
-        items.append((time_to_minutes(e["start"]), time_to_minutes(e["end"]), f"Event: {e['start']} - {e['end']}"))
+        items.append((time_to_minutes(e["start"]), time_to_minutes(e["end"]), 
+                      f"Event '{e['name']}': {e['start']} - {e['end']}"))
 
     # Collect assignments
     for a in assignments:
         start_min = a.get("scheduled_start", None)
         end_min = a.get("scheduled_end", None)
         if start_min is not None and end_min is not None:
-            items.append((start_min, end_min, f"{a['desc']}: {minutes_to_time(start_min)} - {minutes_to_time(end_min)}"))
+            items.append((start_min, end_min, 
+                          f"Assignment '{a['title']}': {minutes_to_time(start_min)} - {minutes_to_time(end_min)}"))
         else:
             # Not scheduled yet, just show duration
-            items.append((0, 0, f"{a['desc']}: {a['time']} mins (not scheduled)"))
+            items.append((0, 0, f"Assignment '{a['title']}': {a['time']} mins (not scheduled)"))
 
     # Sort by start time
     items.sort(key=lambda x: x[0])
@@ -65,39 +67,53 @@ def update_planner_display():
 
 # --- Buttons ---
 def add_event():
+    name = simpledialog.askstring("Event Name", "Enter event name/title:")
     start_time = simpledialog.askstring("Start Time", "Enter start time (HH:MM):")
     end_time = simpledialog.askstring("End Time", "Enter end time (HH:MM):")
     
-    if start_time and end_time:
-        events.append({"start": start_time, "end": end_time})
+    if name and start_time and end_time:
+        events.append({"name": name, "start": start_time, "end": end_time})
         update_planner_display()
-        messagebox.showinfo("Event Added", f"Event: {start_time} - {end_time}")
+        messagebox.showinfo("Event Added", f"Event '{name}': {start_time} - {end_time}")
 
 def add_assignments():
-    desc_string = simpledialog.askstring(
-        "Assignments", 
-        "Enter assignment descriptions separated by ';' (semicolon):"
+    title_string = simpledialog.askstring(
+        "Assignment Titles", 
+        "Enter assignment titles separated by ';' (semicolon):"
     )
     
-    if desc_string:
-        desc_list = [d.strip() for d in desc_string.split(";") if d.strip()]
-        if not desc_list:
-            messagebox.showwarning("No Assignments", "No valid assignments entered.")
+    if title_string:
+        title_list = [t.strip() for t in title_string.split(";") if t.strip()]
+        if not title_list:
+            messagebox.showwarning("No Assignments", "No valid assignment titles entered.")
             return
         
+        desc_string = simpledialog.askstring(
+            "Assignment Descriptions", 
+            "Enter descriptions for assignments separated by ';' (semicolon), in the same order:"
+        )
+        if not desc_string:
+            messagebox.showwarning("No Descriptions", "No valid descriptions entered.")
+            return
+        
+        desc_list = [d.strip() for d in desc_string.split(";") if d.strip()]
+        if len(desc_list) != len(title_list):
+            messagebox.showwarning("Mismatch", "Number of descriptions must match number of titles.")
+            return
+
         # Query Gemini for estimated durations
         durations = gemini.prompt_gemini(desc_list, API_KEY)
         
         # Store assignments
-        for desc, time_est in zip(desc_list, durations):
+        for title, desc, time_est in zip(title_list, desc_list, durations):
             if isinstance(time_est, list):
                 time_est = time_est[0]
-            assignments.append({"desc": desc, "time": time_est})
+            assignments.append({"title": title, "desc": desc, "time": time_est})
         
         update_planner_display()
         messagebox.showinfo(
             "Assignments Added", 
-            "\n".join([f"{a['desc']} - {a['time']} mins" for a in assignments])
+            "\n".join([f"{a['title']}: {a['time']} mins" for a in assignments])
         )
 
 def schedule_assignments():
