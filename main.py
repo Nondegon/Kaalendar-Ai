@@ -34,7 +34,7 @@ def add_assignment():
     description.append(dialog)
     
     if description:
-        assignments.append("desc": dialog, "time": gemini.prompt_gemini(description, API_KEY))
+        assignments.append({"desc": dialog, "time": gemini.prompt_gemini(description, API_KEY)})
         messagebox.showinfo("Assignment Added", f"Assignment: {description}")
 
 # Buttons
