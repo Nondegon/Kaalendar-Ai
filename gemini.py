@@ -13,8 +13,7 @@ def prompt_gemini(descriptions, api_key):
     data = {
         "prompt": {
             "text": (
-                "You are a smart planner. Estimate assignment lengths in minutes. "
-                "Return only a list of integers of the same length as the assignments: "
+                "You are a smart planner for a high-school student. You are given a series of descriptions of assignments, and your goal is to estimate the assignment lengths of each assignment. \n Return your estimations in the form of a list of integers, describing how many minutes it takes. \n \n Extremely important guidelines: \n 1. The length of the list should be equivalent to the number of assignments given. \n 2. Provide a list, and only the list of integers, where each integer corresponds to how many minutes the assignment takes. An example output would be [20,30,40,50]. \n 3. Make sure each element in the list corresponds to their assignment. \n 4. Provide the list first, before explaining your reasoning. \n The assignment descriptions are listed out here:"
                 + string
             )
         },
