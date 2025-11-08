@@ -68,31 +68,50 @@ def add_assignments():
         )
 
 def schedule_assignments():
-    if not assignments:
-        messagebox.showwarning("No Assignments", "Add assignments first!")
+    if not assignments and not events:
+        messagebox.showwarning("No Schedule", "Add assignments or events first!")
         return
-    
-    # Convert events to taken intervals in minutes
-    taken_intervals = [(time_to_minutes(e["start"]), time_to_minutes(e["end"])) for e in events]
+
+    # Convert events to intervals in minutes
+    taken_intervals = [(time_to_minutes(e["start"]), time_to_minutes(e["end"]), f"Event") for e in events]
     durations = [a["time"] for a in assignments]
-    
-    # Generate intervals using calendarAlgo
-    intervals = calendarAlgo.generate_intervals(360, 24*60-1, taken_intervals, durations)
-    
-    if not intervals:
+
+    # Generate assignment intervals using your calendarAlgo
+    assignment_intervals = calendarAlgo.generate_intervals(360, 24*60-1, [(s, e) for s, e, _ in taken_intervals], durations)
+    if not assignment_intervals:
         messagebox.showinfo("Scheduling Failed", "Could not fit assignments into the day.")
         return
-    
-    # Store start times for assignments
-    for a, (start, end) in zip(assignments, intervals):
-        a["start"] = start  # add start time in minutes
-    
-    # Show scheduled assignments
-    schedule_strings = []
-    for a, (start, end) in zip(assignments, intervals):
-        schedule_strings.append(f"{minutes_to_time(start)} - {minutes_to_time(end)}: {a['desc']}")
-    
-    messagebox.showinfo("Schedule", "\n".join(schedule_strings))
+
+    # Combine assignments with events
+    schedule_list = []
+
+    for a, (start, end) in zip(assignments, assignment_intervals):
+        schedule_list.append({
+            "start": start,
+            "end": end,
+            "name": a["desc"]
+        })
+
+    # Add events
+    for s, e, name in taken_intervals:
+        schedule_list.append({
+            "start": s,
+            "end": e,
+            "name": name
+        })
+
+    # Sort by start time
+    schedule_list.sort(key=lambda x: x["start"])
+
+    # Display in HH:MM to HH:MM format
+    display_strings = [
+        f"{item['name']}: {minutes_to_time(item['start'])} to {minutes_to_time(item['end'])}"
+        for item in schedule_list
+    ]
+
+    # Show in messagebox
+    messagebox.showinfo("Daily Schedule", "\n".join(display_strings))
+
 
 def show_daily_planner(assignments, events):
     """
