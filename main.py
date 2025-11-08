@@ -1,7 +1,13 @@
 from itertools import permutations
 import requests
 import json
+import os
+from dotenv import load_dotenv
 
+# Load environment variables from .env file
+load_dotenv()
+
+API_KEY = os.getenv("GEMINI_API_KEY")
 def permutate(v):
     """Return all permutations of a list."""
     return list(permutations(v))
@@ -89,8 +95,6 @@ def prompt_gemini(prompt_text, api_key):
         return result.get("candidates", [{}])[0].get("content", "")
     else:
         return f"Error {response.status_code}: {response.text}"
-
-# Example usage:
-# api_key = "YOUR_GEMINI_API_KEY"
+#do the prompt here
 # print(prompt_gemini("Hello, Gemini!", api_key))
 
