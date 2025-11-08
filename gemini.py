@@ -1,12 +1,6 @@
 import requests
 import json
-import os
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
-
-API_KEY = os.getenv("GEMINI_API_KEY")
 
 def prompt_gemini(description, api_key):
     url = "https://gemini.googleapis.com/v1alpha2/models/text-bison-001:generate"
