@@ -37,7 +37,6 @@ tk.Label(root, text="Assignments (one per line):", font=("Arial", 12, "bold")).p
 assignment_text = scrolledtext.ScrolledText(root, width=60, height=8, wrap=tk.WORD)
 assignment_text.pack(pady=5)
 
-# Buttons frame
 button_frame = tk.Frame(root)
 button_frame.pack(pady=10)
 
@@ -51,17 +50,27 @@ def refresh_planner_display():
     planner_box.delete("1.0", tk.END)
     
     all_items = []
+
+    # Handle sleep as recurring block
     if sleep_block:
-        all_items.append({
-            "name": "Sleep",
-            "start": sleep_block["start"],
-            "end": sleep_block["end"]
-        })
+        start_mins = time_to_minutes(sleep_block["start"])
+        end_mins = time_to_minutes(sleep_block["end"])
+        if end_mins < start_mins:  # crosses midnight
+            all_items.append({"name": "Sleep (Night)", "start": sleep_block["start"], "end": "23:59"})
+            all_items.append({"name": "Sleep (Morning)", "start": "00:00", "end": sleep_block["end"]})
+        else:
+            all_items.append({"name": "Sleep", "start": sleep_block["start"], "end": sleep_block["end"]})
+
     all_items.extend(events)
-    all_items.extend(assignments)
+    all_items.extend([{"name": a["name"], "start": a.get("start", "--:--"), "end": a.get("end", "--:--")} for a in assignments])
     
-    # Sort by start time
-    all_items.sort(key=lambda x: time_to_minutes(x["start"]))
+    # Sort by start time (default to 0 if missing)
+    def sort_key(x):
+        try:
+            return time_to_minutes(x["start"])
+        except:
+            return 0
+    all_items.sort(key=sort_key)
     
     for item in all_items:
         planner_box.insert(tk.END, f"{item['name']}: {item['start']} to {item['end']}\n")
@@ -86,7 +95,7 @@ def add_sleep_schedule():
         global sleep_block
         sleep_block = {"start": start, "end": end}
         refresh_planner_display()
-        messagebox.showinfo("Sleep Added", f"Sleep: {start} - {end}")
+        messagebox.showinfo("Sleep Added", f"Sleep: {start} - {end} (recurring daily)")
 
 def set_downtime():
     global downtime
@@ -124,12 +133,17 @@ def schedule_assignments():
 
     taken_intervals = []
     if sleep_block:
-        taken_intervals.append((time_to_minutes(sleep_block["start"]), time_to_minutes(sleep_block["end"])))
+        start_mins = time_to_minutes(sleep_block["start"])
+        end_mins = time_to_minutes(sleep_block["end"])
+        if end_mins < start_mins:
+            taken_intervals.append((start_mins, 24*60-1))
+            taken_intervals.append((0, end_mins))
+        else:
+            taken_intervals.append((start_mins, end_mins))
     for e in events:
         taken_intervals.append((time_to_minutes(e["start"]), time_to_minutes(e["end"])))
     
     durations = [a["time"] + downtime for a in assignments]  # Add downtime buffer
-
     intervals = calendarAlgo.generate_intervals(360, 24*60-1, taken_intervals, durations)
     
     if not intervals:
@@ -138,8 +152,7 @@ def schedule_assignments():
 
     for a, (start, end) in zip(assignments, intervals):
         a["start"] = minutes_to_time(start)
-        a["end"] = minutes_to_time(end - downtime)  # exclude the buffer from display
-        a["name"] = a["name"]
+        a["end"] = minutes_to_time(end - downtime)  # exclude buffer in display
 
     refresh_planner_display()
     messagebox.showinfo("Schedule Updated", "Assignments scheduled successfully!")
