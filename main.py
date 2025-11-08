@@ -17,6 +17,8 @@ def time_to_minutes(t):
     return h * 60 + m
 
 def minutes_to_time(m):
+    if m >= 1440:
+        return "24:00"
     h = m // 60
     m = m % 60
     return f"{h:02d}:{m:02d}"
@@ -230,42 +232,44 @@ def schedule_assignments():
         messagebox.showwarning("No Assignments", "Add assignments first!")
         return
 
-    # Build taken intervals
+    # Build taken intervals including sleep and events
     taken_intervals = []
     if sleep_block:
         start_mins = time_to_minutes(sleep_block["start"])
         end_mins = time_to_minutes(sleep_block["end"])
-        if end_mins < start_mins:
-            taken_intervals.append((start_mins, 24*60-1))
-            taken_intervals.append((0, end_mins))
+        if end_mins < start_mins:  # crosses midnight
+            taken_intervals.append((start_mins, 24*60))  # night part
+            taken_intervals.append((0, end_mins))        # morning part
         else:
             taken_intervals.append((start_mins, end_mins))
     for e in events:
         taken_intervals.append((time_to_minutes(e["start"]), time_to_minutes(e["end"])))
 
-    # Generate initial intervals
-    durations = [a["time"] for a in assignments]
-    intervals = calendarAlgo.generate_intervals(360, 24*60-1, taken_intervals, durations)
+    durations = [a["time"] for a in assignments]  # durations without downtime
 
+    # Generate intervals
+    intervals = calendarAlgo.generate_intervals(360, 24*60, taken_intervals, durations)
     if not intervals:
         messagebox.showinfo("Scheduling Failed", "Could not fit assignments into the day.")
         return
 
-    # Apply downtime after **every previous block**
-    latest_end = 0
-    if sleep_block:
-        latest_end = max(latest_end, time_to_minutes(sleep_block["end"]) if time_to_minutes(sleep_block["end"]) > time_to_minutes(sleep_block["start"]) else 24*60-1)
-    for e in events:
-        latest_end = max(latest_end, time_to_minutes(e["end"]))
-    
-    for a, (start, end) in zip(assignments, intervals):
+    latest_end = 0  # track latest end time to apply downtime
+
+    for i, (a, (start, end)) in enumerate(zip(assignments, intervals)):
+        # Ensure assignment starts after previous block + downtime
         start_with_downtime = max(start, latest_end + downtime)
+
+        # End time capped at 24*60
+        end_time = min(start_with_downtime + a["time"], 24*60)
+
         a["start"] = minutes_to_time(start_with_downtime)
-        a["end"] = minutes_to_time(start_with_downtime + a["time"])
-        latest_end = start_with_downtime + a["time"]  # update latest end for next assignment
+        a["end"] = minutes_to_time(end_time)
+
+        latest_end = end_time  # update for next assignment
 
     refresh_planner_display()
     messagebox.showinfo("Schedule Updated", "Assignments scheduled successfully!")
+
 # --- Buttons ---
 planner_box.bind("<Button-1>", on_planner_click)
 tk.Button(button_frame, text="Add Event", command=add_event).grid(row=0, column=0, padx=5)
