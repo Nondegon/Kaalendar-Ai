@@ -131,28 +131,39 @@ def schedule_assignments():
         messagebox.showwarning("No Assignments", "Add assignments first!")
         return
 
+    # Build taken intervals including sleep and events
     taken_intervals = []
     if sleep_block:
         start_mins = time_to_minutes(sleep_block["start"])
         end_mins = time_to_minutes(sleep_block["end"])
-        if end_mins < start_mins:
+        if end_mins < start_mins:  # crosses midnight
             taken_intervals.append((start_mins, 24*60-1))
             taken_intervals.append((0, end_mins))
         else:
             taken_intervals.append((start_mins, end_mins))
     for e in events:
         taken_intervals.append((time_to_minutes(e["start"]), time_to_minutes(e["end"])))
-    
-    durations = [a["time"] + downtime for a in assignments]  # Add downtime buffer
+
+    durations = [a["time"] for a in assignments]  # durations without downtime
+
+    # Generate intervals
     intervals = calendarAlgo.generate_intervals(360, 24*60-1, taken_intervals, durations)
-    
+
     if not intervals:
         messagebox.showinfo("Scheduling Failed", "Could not fit assignments into the day.")
         return
 
-    for a, (start, end) in zip(assignments, intervals):
-        a["start"] = minutes_to_time(start)
-        a["end"] = minutes_to_time(end - downtime)  # exclude buffer in display
+    # Apply downtime between assignments
+    for i, (a, (start, end)) in enumerate(zip(assignments, intervals)):
+        # Ensure assignment starts after previous event/assignment + downtime
+        if i == 0:
+            start_with_downtime = start
+        else:
+            prev_end = time_to_minutes(assignments[i-1]["end"])
+            start_with_downtime = max(start, prev_end + downtime)
+        
+        a["start"] = minutes_to_time(start_with_downtime)
+        a["end"] = minutes_to_time(start_with_downtime + a["time"])
 
     refresh_planner_display()
     messagebox.showinfo("Schedule Updated", "Assignments scheduled successfully!")
