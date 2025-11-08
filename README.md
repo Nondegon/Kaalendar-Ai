@@ -49,3 +49,13 @@ git pull
 # Run the main program
 python3 main.py
 ```
+## Getting a Gemini API Key
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project (or select an existing one).
+3. Enable the **Generative Language API** for your project.
+4. Go to **APIs & Services > Credentials** and create an **API key**.
+5. Copy the API key and set it in your environment:
+
+```bash
+export GEMINI_API_KEY="YOUR_API_KEY_HERE"
