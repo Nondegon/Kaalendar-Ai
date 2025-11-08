@@ -1,4 +1,4 @@
-# main.py
+# main.py (with Sleep Schedule button)
 
 import os
 from dotenv import load_dotenv
@@ -57,7 +57,6 @@ def update_planner_display():
             items.append((start_min, end_min, 
                           f"Assignment '{a['title']}': {minutes_to_time(start_min)} - {minutes_to_time(end_min)}"))
         else:
-            # Not scheduled yet, just show duration
             items.append((0, 0, f"Assignment '{a['title']}': {a['time']} mins (not scheduled)"))
 
     # Sort by start time
@@ -75,6 +74,27 @@ def add_event():
         events.append({"name": name, "start": start_time, "end": end_time})
         update_planner_display()
         messagebox.showinfo("Event Added", f"Event '{name}': {start_time} - {end_time}")
+
+def add_sleep_schedule():
+    """Add sleep as a special event based on start time and desired hours of sleep."""
+    start_time = simpledialog.askstring("Sleep Start", "Enter sleep start time (HH:MM):")
+    if not start_time:
+        return
+
+    hours_str = simpledialog.askstring("Sleep Duration", "Enter number of hours to sleep (e.g., 8):")
+    if not hours_str or not hours_str.isdigit():
+        messagebox.showwarning("Invalid Input", "Please enter a valid number of hours.")
+        return
+
+    hours = int(hours_str)
+    start_minutes = time_to_minutes(start_time)
+    end_minutes = (start_minutes + hours * 60) % (24 * 60)  # wrap around midnight
+    end_time = minutes_to_time(end_minutes)
+
+    events.append({"name": "Sleep", "start": start_time, "end": end_time})
+    update_planner_display()
+    messagebox.showinfo("Sleep Scheduled", f"Sleep: {start_time} - {end_time}")
+
 
 def add_assignments():
     title_string = simpledialog.askstring(
@@ -140,7 +160,9 @@ def schedule_assignments():
     update_planner_display()
     messagebox.showinfo("Schedule Complete", "Assignments have been scheduled!")
 
+# --- Buttons ---
 tk.Button(root, text="Add Schedule Event", command=add_event).pack(pady=5)
+tk.Button(root, text="Add Sleep Schedule", command=add_sleep_schedule).pack(pady=5)
 tk.Button(root, text="Add Multiple Assignments", command=add_assignments).pack(pady=5)
 tk.Button(root, text="Schedule Assignments", command=schedule_assignments).pack(pady=5)
 
