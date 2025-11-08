@@ -56,8 +56,12 @@ def add_assignments():
         
         # Store assignments
         for desc, time_est in zip(desc_list, durations):
+            # Make sure time_est is an integer, not a list
+            if isinstance(time_est, list):
+                time_est = time_est[0]
             assignments.append({"desc": desc, "time": time_est})
         
+        # Display nicely
         messagebox.showinfo(
             "Assignments Added", 
             "\n".join([f"{a['desc']} - {a['time']} mins" for a in assignments])
