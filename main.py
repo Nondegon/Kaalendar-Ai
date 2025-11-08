@@ -168,7 +168,62 @@ def schedule_assignments():
     refresh_planner_display()
     messagebox.showinfo("Schedule Updated", "Assignments scheduled successfully!")
 
+def on_planner_click(event):
+    # Get the line number clicked
+    index = planner_box.index(f"@{event.x},{event.y}")
+    line_num = int(index.split('.')[0])
+    line_text = planner_box.get(f"{line_num}.0", f"{line_num}.end").strip()
+    
+    if not line_text:
+        return
+    
+    # Find the corresponding item in events/assignments/sleep
+    all_items = []
+    if sleep_block:
+        all_items.append(sleep_block)
+    all_items.extend(events)
+    all_items.extend(assignments)
+    
+    # Sort like in display
+    all_items.sort(key=lambda x: time_to_minutes(x["start"]))
+    
+    if line_num-1 >= len(all_items):
+        return
+    
+    item = all_items[line_num-1]
+    
+    # Ask user what to do
+    action = messagebox.askquestion(
+        "Modify or Delete",
+        f"Do you want to modify or delete:\n{item['name']}: {item['start']} - {item['end']}?",
+        icon="question"
+    )
+    
+    if action == "yes":
+        # Modify times and/or name
+        new_name = simpledialog.askstring("Name", "Enter new name:", initialvalue=item["name"])
+        new_start = simpledialog.askstring("Start Time", "Enter new start time (HH:MM):", initialvalue=item["start"])
+        new_end = simpledialog.askstring("End Time", "Enter new end time (HH:MM):", initialvalue=item["end"])
+        
+        if new_name and new_start and new_end:
+            item["name"] = new_name
+            item["start"] = new_start
+            item["end"] = new_end
+    else:
+        # Delete
+        if item == sleep_block:
+            global sleep_block
+            sleep_block = None
+        elif item in events:
+            events.remove(item)
+        elif item in assignments:
+            assignments.remove(item)
+    
+    refresh_planner_display()
+
+
 # --- Buttons ---
+planner_box.bind("<Button-1>", on_planner_click)
 tk.Button(button_frame, text="Add Event", command=add_event).grid(row=0, column=0, padx=5)
 tk.Button(button_frame, text="Add Sleep Schedule", command=add_sleep_schedule).grid(row=0, column=1, padx=5)
 tk.Button(button_frame, text="Set Downtime", command=set_downtime).grid(row=0, column=2, padx=5)
