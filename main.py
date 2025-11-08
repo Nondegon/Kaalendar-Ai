@@ -2,8 +2,8 @@ import os
 from dotenv import load_dotenv
 import tkinter as tk
 from tkinter import simpledialog, messagebox
-import calendarAlgo.py
-import gemini.py
+import calendarAlgo
+import gemini
 # Load environment variables from .env file
 load_dotenv()
 
