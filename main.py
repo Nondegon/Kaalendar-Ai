@@ -77,7 +77,7 @@ def schedule_assignments():
     durations = [a["time"] for a in assignments]
     
     # Generate intervals using calendarAlgo
-    intervals = calendarAlgo.generate_intervals(0, 24*60-1, taken_intervals, durations)
+    intervals = calendarAlgo.generate_intervals(360, 24*60-1, taken_intervals, durations)
     
     if not intervals:
         messagebox.showinfo("Scheduling Failed", "Could not fit assignments into the day.")
