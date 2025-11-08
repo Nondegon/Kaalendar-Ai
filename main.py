@@ -98,7 +98,7 @@ def on_planner_click(event):
     if not line_text:
         return
 
-    # Build all items with normalized keys
+    # Build all items normalized
     all_items = []
     if sleep_block:
         start_mins = time_to_minutes(sleep_block["start"])
@@ -109,17 +109,9 @@ def on_planner_click(event):
         else:
             all_items.append({"name": "Sleep", "start": sleep_block["start"], "end": sleep_block["end"]})
     for e in events:
-        all_items.append({
-            "name": e.get("name", "Event"),
-            "start": e.get("start", "--:--"),
-            "end": e.get("end", "--:--")
-        })
+        all_items.append({"name": e.get("name", "Event"), "start": e.get("start", "--:--"), "end": e.get("end", "--:--")})
     for a in assignments:
-        all_items.append({
-            "name": a.get("name", "Assignment"),
-            "start": a.get("start", "--:--"),
-            "end": a.get("end", "--:--")
-        })
+        all_items.append({"name": a.get("name", "Assignment"), "start": a.get("start", "--:--"), "end": a.get("end", "--:--")})
     all_items.sort(key=lambda x: time_to_minutes(x["start"]))
 
     if line_num-1 >= len(all_items):
@@ -127,13 +119,13 @@ def on_planner_click(event):
 
     item = all_items[line_num-1]
 
-    action = messagebox.askquestion(
-        "Modify or Delete",
-        f"Do you want to modify or delete:\n{item['name']}: {item['start']} - {item['end']}?",
-        icon="question"
-    )
-
-    if action == "yes":
+    # Custom modify/delete dialog
+    top = tk.Toplevel(root)
+    top.title("Modify or Delete")
+    tk.Label(top, text=f"What do you want to do with:\n{item['name']}: {item['start']} - {item['end']}?").pack(pady=10)
+    
+    def modify():
+        top.destroy()
         new_name = simpledialog.askstring("Name", "Enter new name:", initialvalue=item["name"])
         new_start = simpledialog.askstring("Start Time", "Enter new start time (HH:MM):", initialvalue=item["start"])
         new_end = simpledialog.askstring("End Time", "Enter new end time (HH:MM):", initialvalue=item["end"])
@@ -142,23 +134,19 @@ def on_planner_click(event):
                 sleep_block["start"] = new_start
                 sleep_block["end"] = new_end
             else:
-                # Update events
                 for e in events:
                     if e.get("name") == item["name"] and e.get("start") == item["start"]:
-                        e["name"] = new_name
-                        e["start"] = new_start
-                        e["end"] = new_end
+                        e.update({"name": new_name, "start": new_start, "end": new_end})
                         break
                 else:
-                    # Update assignments
                     for a in assignments:
                         if a.get("name") == item["name"] and a.get("start") == item["start"]:
-                            a["name"] = new_name
-                            a["start"] = new_start
-                            a["end"] = new_end
+                            a.update({"name": new_name, "start": new_start, "end": new_end})
                             break
-    else:
-        # Delete
+        refresh_planner_display()
+    
+    def delete():
+        top.destroy()
         if "Sleep" in item["name"]:
             sleep_block = None
         else:
@@ -171,8 +159,10 @@ def on_planner_click(event):
                     if a.get("name") == item["name"] and a.get("start") == item["start"]:
                         assignments.remove(a)
                         break
+        refresh_planner_display()
 
-    refresh_planner_display()
+    tk.Button(top, text="Modify", command=modify, width=10).pack(side="left", padx=10, pady=10)
+    tk.Button(top, text="Delete", command=delete, width=10).pack(side="right", padx=10, pady=10)
 
 def add_event():
     start_time = simpledialog.askstring("Start Time", "Enter start time (HH:MM):")
@@ -220,12 +210,12 @@ def schedule_assignments():
         messagebox.showwarning("No Assignments", "Add assignments first!")
         return
 
-    # Build taken intervals including sleep and events
+    # Build taken intervals
     taken_intervals = []
     if sleep_block:
         start_mins = time_to_minutes(sleep_block["start"])
         end_mins = time_to_minutes(sleep_block["end"])
-        if end_mins < start_mins:  # crosses midnight
+        if end_mins < start_mins:
             taken_intervals.append((start_mins, 24*60-1))
             taken_intervals.append((0, end_mins))
         else:
@@ -233,26 +223,29 @@ def schedule_assignments():
     for e in events:
         taken_intervals.append((time_to_minutes(e["start"]), time_to_minutes(e["end"])))
 
-    durations = [a["time"] + downtime for a in assignments]  # add downtime to each assignment
+    # Generate initial intervals
+    durations = [a["time"] for a in assignments]
     intervals = calendarAlgo.generate_intervals(360, 24*60-1, taken_intervals, durations)
 
     if not intervals:
         messagebox.showinfo("Scheduling Failed", "Could not fit assignments into the day.")
         return
 
-    # Apply downtime between assignments
-    for i, (a, (start, end)) in enumerate(zip(assignments, intervals)):
-        if i == 0:
-            start_with_downtime = start
-        else:
-            prev_end = time_to_minutes(assignments[i-1]["end"])
-            start_with_downtime = max(start, prev_end + downtime)
+    # Apply downtime after **every previous block**
+    latest_end = 0
+    if sleep_block:
+        latest_end = max(latest_end, time_to_minutes(sleep_block["end"]) if time_to_minutes(sleep_block["end"]) > time_to_minutes(sleep_block["start"]) else 24*60-1)
+    for e in events:
+        latest_end = max(latest_end, time_to_minutes(e["end"]))
+    
+    for a, (start, end) in zip(assignments, intervals):
+        start_with_downtime = max(start, latest_end + downtime)
         a["start"] = minutes_to_time(start_with_downtime)
         a["end"] = minutes_to_time(start_with_downtime + a["time"])
+        latest_end = start_with_downtime + a["time"]  # update latest end for next assignment
 
     refresh_planner_display()
     messagebox.showinfo("Schedule Updated", "Assignments scheduled successfully!")
-
 # --- Buttons ---
 planner_box.bind("<Button-1>", on_planner_click)
 tk.Button(button_frame, text="Add Event", command=add_event).grid(row=0, column=0, padx=5)
