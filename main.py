@@ -1,5 +1,14 @@
+import os
+from dotenv import load_dotenv
 import tkinter as tk
 from tkinter import simpledialog, messagebox
+import calendarAlgo.py
+import gemini.py
+# Load environment variables from .env file
+load_dotenv()
+
+API_KEY = os.getenv("GEMINI_API_KEY")
+
 
 # Create main window
 root = tk.Tk()
