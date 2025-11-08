@@ -56,7 +56,7 @@ def add_assignments():
         
         # Store assignments
         for desc, time_est in zip(desc_list, durations):
-            # Make sure time_est is an integer, not a list
+            # Make sure time_est is an integer
             if isinstance(time_est, list):
                 time_est = time_est[0]
             assignments.append({"desc": desc, "time": time_est})
@@ -83,6 +83,10 @@ def schedule_assignments():
         messagebox.showinfo("Scheduling Failed", "Could not fit assignments into the day.")
         return
     
+    # Store start times for assignments
+    for a, (start, end) in zip(assignments, intervals):
+        a["start"] = start  # add start time in minutes
+    
     # Show scheduled assignments
     schedule_strings = []
     for a, (start, end) in zip(assignments, intervals):
@@ -90,10 +94,61 @@ def schedule_assignments():
     
     messagebox.showinfo("Schedule", "\n".join(schedule_strings))
 
+def show_daily_planner(assignments, events):
+    """
+    Display a daily planner with hourly breakdown.
+    """
+    planner_root = tk.Toplevel()
+    planner_root.title("Daily Planner")
+
+    canvas = tk.Canvas(planner_root, width=400, height=600)
+    scrollbar = tk.Scrollbar(planner_root, orient="vertical", command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas)
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+    
+    canvas.create_window((0,0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    # Convert events start/end to minutes
+    events_minutes = [
+        (time_to_minutes(e["start"]), time_to_minutes(e["end"]), e)
+        for e in events
+    ]
+
+    # Convert assignments start/end to minutes
+    assignments_minutes = [
+        (a["start"], a["start"] + a["time"], a)
+        for a in assignments if "start" in a
+    ]
+
+    for hour in range(24):
+        frame = tk.Frame(scrollable_frame, borderwidth=1, relief="solid")
+        frame.pack(fill="x")
+        tk.Label(frame, text=f"{hour:02d}:00", width=10, anchor="w").pack(side="left")
+        
+        # Items in this hour
+        items = []
+        for start, end, a in assignments_minutes:
+            if start // 60 <= hour < end // 60:
+                items.append(f"[A] {a['desc']}")
+        for start, end, e in events_minutes:
+            if start // 60 <= hour < end // 60:
+                items.append(f"[E] {e.get('title', 'Event')}")
+        
+        tk.Label(frame, text=", ".join(items)).pack(side="left")
+
+    canvas.pack(side="left", fill="both", expand=True)
+    scrollbar.pack(side="right", fill="y")
+
 # --- Buttons ---
 tk.Button(root, text="Add Schedule Event", command=add_event).pack(pady=5)
 tk.Button(root, text="Add Multiple Assignments", command=add_assignments).pack(pady=5)
-tk.Button(root, text="Schedule Assignments", command=schedule_assignments).pack(pady=10)
+tk.Button(root, text="Schedule Assignments", command=schedule_assignments).pack(pady=5)
+tk.Button(root, text="View Daily Planner", command=lambda: show_daily_planner(assignments, events)).pack(pady=5)
 
 # Run the GUI
 root.mainloop()
