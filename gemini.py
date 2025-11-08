@@ -28,7 +28,7 @@ def prompt_gemini(prompt_text, api_key):
 
     data = {
         "prompt": {
-            "text": prompt_text
+            "text": "You are a smart planner. Your goal is to estimate a lower bound on how much time an assignment will take for a high-school student. The description is as follows: " + prompt_text +  " Return an estimate of how many minutes the assignment will take, and ONLY return the amount of minutes."
         },
         "temperature": 0.7,
         "maxOutputTokens": 500
