@@ -1,8 +1,17 @@
-from itertools import permutations
-
-def permutate(v):
-    """Return all permutations of a list."""
-    return list(permutations(v))
+def permutate(v, idx=0, res=None):
+    if res is None:
+        res = []
+    
+    if idx == len(v):
+        res.append(v[:])  # Make a copy of the current permutation
+        return res
+    
+    for i in range(idx, len(v)):
+        v[i], v[idx] = v[idx], v[i]  # swap
+        permutate(v, idx + 1, res)
+        v[i], v[idx] = v[idx], v[i]  # backtrack
+    
+    return res
 
 def fit_perm(to_fit, taken_intervals, left_bound, right_bound):
     """Try to fit the intervals to_fit into the open spaces defined by taken_intervals."""
