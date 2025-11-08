@@ -190,15 +190,35 @@ def set_downtime():
         messagebox.showinfo("Downtime Set", f"Downtime set to {downtime} minutes.")
 
 def add_assignments():
-    desc_list = [line.strip() for line in assignment_text.get("1.0", tk.END).splitlines() if line.strip()]
-    if not desc_list:
+    raw_lines = [line.strip() for line in assignment_text.get("1.0", tk.END).splitlines() if line.strip()]
+    if not raw_lines:
         messagebox.showwarning("No Assignments", "Please enter at least one assignment.")
         return
 
-    durations = gemini.prompt_gemini(desc_list, API_KEY)
+    titles = []
+    descriptions = []
+
+    for line in raw_lines:
+        if "|" in line:
+            title, desc = map(str.strip, line.split("|", 1))
+        else:  # fallback: title = description if no |
+            title = desc = line
+        titles.append(title)
+        descriptions.append(desc)
+
+    # Call Gemini to estimate times based on descriptions
+    durations = gemini.prompt_gemini(descriptions, API_KEY)
+
+    # Save assignments
     assignments.clear()
-    for desc, time_est in zip(desc_list, durations):
-        assignments.append({"name": desc, "time": time_est, "start": None, "end": None})
+    for title, desc, time_est in zip(titles, descriptions, durations):
+        assignments.append({
+            "name": title,      # displayed in planner
+            "desc": desc,       # stored for reference / Gemini
+            "time": time_est,
+            "start": None,
+            "end": None
+        })
 
     messagebox.showinfo(
         "Assignments Added",
