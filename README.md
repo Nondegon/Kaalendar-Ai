@@ -45,3 +45,12 @@ git pull
 
 # Run the main program
 python3 main.py
+
+# Activate the environment
+source venv/bin/activate
+
+# Pull latest updates
+git pull
+
+# Run the main program
+python3 main.py
