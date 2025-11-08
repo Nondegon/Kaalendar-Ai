@@ -46,7 +46,7 @@ def prompt_gemini(descriptions, api_key, model="gemini-2.0-flash"):
         ],
         "generationConfig": {
             "maxOutputTokens": 500,
-            "temperature": 0.7
+            "temperature": 0.6
         }
     }
 
