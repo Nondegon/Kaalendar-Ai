@@ -76,7 +76,7 @@ def add_event():
         messagebox.showinfo("Event Added", f"Event '{name}': {start_time} - {end_time}")
 
 def add_sleep_schedule():
-    """Add sleep as a special event based on start time and desired hours of sleep."""
+    """Add daily sleep event that spans overnight if needed."""
     start_time = simpledialog.askstring("Sleep Start", "Enter sleep start time (HH:MM):")
     if not start_time:
         return
@@ -88,13 +88,18 @@ def add_sleep_schedule():
 
     hours = int(hours_str)
     start_minutes = time_to_minutes(start_time)
-    end_minutes = (start_minutes + hours * 60) % (24 * 60)  # wrap around midnight
-    end_time = minutes_to_time(end_minutes)
+    end_minutes = start_minutes + hours * 60
 
-    events.append({"name": "Sleep", "start": start_time, "end": end_time})
+    if end_minutes <= 24*60:
+        # Sleep does not cross midnight
+        events.append({"name": "Sleep", "start": start_time, "end": minutes_to_time(end_minutes)})
+    else:
+        # Sleep crosses midnight: split into two intervals
+        events.append({"name": "Sleep", "start": start_time, "end": "24:00"})
+        events.append({"name": "Sleep", "start": "00:00", "end": minutes_to_time(end_minutes % (24*60))})
+
     update_planner_display()
-    messagebox.showinfo("Sleep Scheduled", f"Sleep: {start_time} - {end_time}")
-
+    messagebox.showinfo("Sleep Scheduled", f"Sleep added from {start_time} for {hours} hours")
 
 def add_assignments():
     title_string = simpledialog.askstring(
