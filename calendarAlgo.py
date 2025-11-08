@@ -1,5 +1,9 @@
 from itertools import permutations
 
+def permutate(v):
+    """Return all permutations of a list."""
+    return list(permutations(v))
+
 def fit_perm(to_fit, taken_intervals, left_bound, right_bound):
     """Try to fit the intervals to_fit into the open spaces defined by taken_intervals."""
     open_intervals = []
