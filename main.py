@@ -35,7 +35,7 @@ sleep_block = None
 downtime = 5  # default downtime in minutes
 
 # --- UI Elements ---
-tk.Label(root, text="Assignments (one per line):", font=("Arial", 12, "bold")).pack(pady=5)
+tk.Label(root, text="Assignments (one per line). Use the format TITLE | DESCRIPTION:", font=("Arial", 12, "bold")).pack(pady=5)
 assignment_text = scrolledtext.ScrolledText(root, width=60, height=8, wrap=tk.WORD)
 assignment_text.pack(pady=5)
 
