@@ -6,7 +6,7 @@ import re
 import tkinter as tk
 from tkinter import simpledialog, messagebox
 
-def prompt_gemini(descriptions, api_key, model="gemini-1.5-pro"):
+def prompt_gemini(descriptions, api_key, model="gemini-2.0-flash"):
     """
     Ask Gemini API to estimate assignment lengths (minutes) for each description.
     If the API call or parsing fails, fallback to prompting the user.
