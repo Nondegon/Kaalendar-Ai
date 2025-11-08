@@ -232,7 +232,7 @@ def schedule_assignments():
         messagebox.showwarning("No Assignments", "Add assignments first!")
         return
 
-    # Build taken intervals including sleep and events
+    # --- Build taken intervals including sleep and events ---
     taken_intervals = []
     if sleep_block:
         start_mins = time_to_minutes(sleep_block["start"])
@@ -245,18 +245,27 @@ def schedule_assignments():
     for e in events:
         taken_intervals.append((time_to_minutes(e["start"]), time_to_minutes(e["end"])))
 
-    durations = [a["time"] for a in assignments]  # durations without downtime
+    # --- Sort intervals and add downtime padding ---
+    taken_intervals.sort()
+    buffered_intervals = []
+    for start, end in taken_intervals:
+        buffered_start = max(0, start - downtime)   # buffer before the block
+        buffered_end = min(24*60, end + downtime)  # buffer after the block
+        buffered_intervals.append((buffered_start, buffered_end))
 
-    # Generate intervals
-    intervals = calendarAlgo.generate_intervals(360, 24*60, taken_intervals, durations)
+    # --- Prepare assignment durations ---
+    durations = [a["time"] for a in assignments]  # raw durations
+
+    # --- Generate intervals considering all buffered intervals ---
+    intervals = calendarAlgo.generate_intervals(360, 24*60, buffered_intervals, durations)
     if not intervals:
         messagebox.showinfo("Scheduling Failed", "Could not fit assignments into the day.")
         return
 
-    latest_end = 0  # track latest end time to apply downtime
-
-    for i, (a, (start, end)) in enumerate(zip(assignments, intervals)):
-        # Ensure assignment starts after previous block + downtime
+    # --- Assign start/end times while respecting downtime between assignments ---
+    latest_end = 0
+    for a, (start, end) in zip(assignments, intervals):
+        # Start after previous assignment + downtime
         start_with_downtime = max(start, latest_end + downtime)
 
         # End time capped at 24*60
@@ -267,6 +276,7 @@ def schedule_assignments():
 
         latest_end = end_time  # update for next assignment
 
+    # --- Refresh UI ---
     refresh_planner_display()
     messagebox.showinfo("Schedule Updated", "Assignments scheduled successfully!")
 
