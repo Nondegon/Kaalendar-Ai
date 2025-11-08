@@ -29,11 +29,12 @@ def add_event():
 
 # Function to add an assignment
 def add_assignment():
+    dialog = simpledialog.askstring("Assignment", "Enter assignment description:")
     description = []
-    description.append(simpledialog.askstring("Assignment", "Enter assignment description:"))
+    description.append(dialog)
     
     if description:
-        assignments.append("desc": description, "time": gemini.prompt_gemini(description, API_KEY))
+        assignments.append("desc": dialog, "time": gemini.prompt_gemini(description, API_KEY))
         messagebox.showinfo("Assignment Added", f"Assignment: {description}")
 
 # Buttons
