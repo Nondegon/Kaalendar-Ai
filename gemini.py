@@ -1,7 +1,3 @@
-import requests
-import json
-import re
-
 def prompt_gemini(descriptions, api_key):
     import requests, json, re
     
@@ -13,8 +9,14 @@ def prompt_gemini(descriptions, api_key):
     data = {
         "prompt": {
             "text": (
-                "You are a smart planner for a high-school student. You are given a series of descriptions of assignments, and your goal is to estimate a lower bound on the assignment lengths of each assignment. \n Return your estimations in the form of a list of integers, describing how many minutes it takes. \n \n Extremely important guidelines: \n 1. The length of the list should be equivalent to the number of assignments given. \n 2. Provide a list, and only the list of integers, where each integer corresponds to how many minutes the assignment takes. An example output would be [20,30,40,50]. \n 3. Make sure each element in the list corresponds to their assignment. \n 4. Provide the list first, before explaining your reasoning. \n The assignment descriptions are listed out here:"
-                + string
+                "You are a smart planner for a high-school student. You are given a series of descriptions of assignments, "
+                "and your goal is to estimate the assignment lengths of each assignment. \nReturn your estimations in the form of a list of integers. "
+                "Extremely important guidelines:\n"
+                "1. Length of the list must match the number of assignments.\n"
+                "2. Provide ONLY a list of integers. Example: [20,30,40,50]\n"
+                "3. The list must correspond to the assignments in order.\n"
+                "4. List must appear first, before any explanation.\n"
+                "Assignments:\n" + string
             )
         },
         "temperature": 0.7,
@@ -27,14 +29,17 @@ def prompt_gemini(descriptions, api_key):
         result = response.json()
         text_output = result.get("candidates", [{}])[0].get("content", "")
         
-        # Try to extract integers more robustly
-        numbers = re.findall(r"\d+", text_output)
-        if len(numbers) >= len(descriptions):
-            numbers_list = [int(n) for n in numbers[:len(descriptions)]]
-            return numbers_list
-        else:
-            # Fallback: return 30 mins for each assignment if parsing fails
-            return [30] * len(descriptions)
+        # Robustly extract first list of integers
+        match = re.search(r"\[\s*(\d+(?:\s*,\s*\d+)*)\s*\]", text_output)
+        if match:
+            numbers_str = match.group(1)
+            numbers_list = [int(n) for n in re.findall(r"\d+", numbers_str)]
+            if len(numbers_list) == len(descriptions):
+                return numbers_list
+        
+        # Fallback: print debug and ask manual input
+        print("Could not parse Gemini response:", text_output)
+        return [30] * len(descriptions)  # temporary fallback
     else:
-        # If API error, return 30 mins default
+        print("Gemini API error:", response.status_code, response.text)
         return [30] * len(descriptions)
