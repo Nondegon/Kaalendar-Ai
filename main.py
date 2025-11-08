@@ -44,61 +44,6 @@ planner_box = scrolledtext.ScrolledText(root, width=60, height=20, wrap=tk.WORD,
 planner_box.pack(pady=10)
 
 # --- Core Functions ---
-def on_planner_click(event):
-    global sleep_block  # <-- move this here, before using sleep_block
-    
-    # Get the line number clicked
-    index = planner_box.index(f"@{event.x},{event.y}")
-    line_num = int(index.split('.')[0])
-    line_text = planner_box.get(f"{line_num}.0", f"{line_num}.end").strip()
-    
-    if not line_text:
-        return
-    
-    # Find the corresponding item in events/assignments/sleep
-    all_items = []
-    if sleep_block:
-        all_items.append(sleep_block)
-    all_items.extend(events)
-    all_items.extend(assignments)
-    
-    # Sort like in display
-    all_items.sort(key=lambda x: time_to_minutes(x["start"]))
-    
-    if line_num-1 >= len(all_items):
-        return
-    
-    item = all_items[line_num-1]
-    
-    # Ask user what to do
-    action = messagebox.askquestion(
-        "Modify or Delete",
-        f"Do you want to modify or delete:\n{item['name']}: {item['start']} - {item['end']}?",
-        icon="question"
-    )
-    
-    if action == "yes":
-        # Modify times and/or name
-        new_name = simpledialog.askstring("Name", "Enter new name:", initialvalue=item["name"])
-        new_start = simpledialog.askstring("Start Time", "Enter new start time (HH:MM):", initialvalue=item["start"])
-        new_end = simpledialog.askstring("End Time", "Enter new end time (HH:MM):", initialvalue=item["end"])
-        
-        if new_name and new_start and new_end:
-            item["name"] = new_name
-            item["start"] = new_start
-            item["end"] = new_end
-    else:
-        # Delete
-        if item == sleep_block:
-            sleep_block = None
-        elif item in events:
-            events.remove(item)
-        elif item in assignments:
-            assignments.remove(item)
-    
-    refresh_planner_display()
-
-
 def refresh_planner_display():
     """Refresh the daily planner UI with events, assignments, and sleep."""
     planner_box.config(state="normal")
@@ -116,9 +61,22 @@ def refresh_planner_display():
         else:
             all_items.append({"name": "Sleep", "start": sleep_block["start"], "end": sleep_block["end"]})
 
-    all_items.extend(events)
-    all_items.extend([{"name": a["name"], "start": a.get("start", "--:--"), "end": a.get("end", "--:--")} for a in assignments])
-    
+    # Normalize events
+    for e in events:
+        all_items.append({
+            "name": e.get("name", "Event"),
+            "start": e.get("start", "--:--"),
+            "end": e.get("end", "--:--")
+        })
+
+    # Normalize assignments
+    for a in assignments:
+        all_items.append({
+            "name": a.get("name", "Assignment"),
+            "start": a.get("start", "--:--"),
+            "end": a.get("end", "--:--")
+        })
+
     # Sort by start time (default to 0 if missing)
     def sort_key(x):
         try:
@@ -132,22 +90,104 @@ def refresh_planner_display():
     
     planner_box.config(state="disabled")
 
+def on_planner_click(event):
+    global sleep_block
+    index = planner_box.index(f"@{event.x},{event.y}")
+    line_num = int(index.split('.')[0])
+    line_text = planner_box.get(f"{line_num}.0", f"{line_num}.end").strip()
+    if not line_text:
+        return
+
+    # Build all items with normalized keys
+    all_items = []
+    if sleep_block:
+        start_mins = time_to_minutes(sleep_block["start"])
+        end_mins = time_to_minutes(sleep_block["end"])
+        if end_mins < start_mins:
+            all_items.append({"name": "Sleep (Night)", "start": sleep_block["start"], "end": "23:59"})
+            all_items.append({"name": "Sleep (Morning)", "start": "00:00", "end": sleep_block["end"]})
+        else:
+            all_items.append({"name": "Sleep", "start": sleep_block["start"], "end": sleep_block["end"]})
+    for e in events:
+        all_items.append({
+            "name": e.get("name", "Event"),
+            "start": e.get("start", "--:--"),
+            "end": e.get("end", "--:--")
+        })
+    for a in assignments:
+        all_items.append({
+            "name": a.get("name", "Assignment"),
+            "start": a.get("start", "--:--"),
+            "end": a.get("end", "--:--")
+        })
+    all_items.sort(key=lambda x: time_to_minutes(x["start"]))
+
+    if line_num-1 >= len(all_items):
+        return
+
+    item = all_items[line_num-1]
+
+    action = messagebox.askquestion(
+        "Modify or Delete",
+        f"Do you want to modify or delete:\n{item['name']}: {item['start']} - {item['end']}?",
+        icon="question"
+    )
+
+    if action == "yes":
+        new_name = simpledialog.askstring("Name", "Enter new name:", initialvalue=item["name"])
+        new_start = simpledialog.askstring("Start Time", "Enter new start time (HH:MM):", initialvalue=item["start"])
+        new_end = simpledialog.askstring("End Time", "Enter new end time (HH:MM):", initialvalue=item["end"])
+        if new_name and new_start and new_end:
+            if "Sleep" in item["name"]:
+                sleep_block["start"] = new_start
+                sleep_block["end"] = new_end
+            else:
+                # Update events
+                for e in events:
+                    if e.get("name") == item["name"] and e.get("start") == item["start"]:
+                        e["name"] = new_name
+                        e["start"] = new_start
+                        e["end"] = new_end
+                        break
+                else:
+                    # Update assignments
+                    for a in assignments:
+                        if a.get("name") == item["name"] and a.get("start") == item["start"]:
+                            a["name"] = new_name
+                            a["start"] = new_start
+                            a["end"] = new_end
+                            break
+    else:
+        # Delete
+        if "Sleep" in item["name"]:
+            sleep_block = None
+        else:
+            for e in events:
+                if e.get("name") == item["name"] and e.get("start") == item["start"]:
+                    events.remove(e)
+                    break
+            else:
+                for a in assignments:
+                    if a.get("name") == item["name"] and a.get("start") == item["start"]:
+                        assignments.remove(a)
+                        break
+
+    refresh_planner_display()
+
 def add_event():
     start_time = simpledialog.askstring("Start Time", "Enter start time (HH:MM):")
     end_time = simpledialog.askstring("End Time", "Enter end time (HH:MM):")
     name = simpledialog.askstring("Event Name", "Enter event name:")
-    
     if start_time and end_time and name:
         events.append({"name": name, "start": start_time, "end": end_time})
         refresh_planner_display()
         messagebox.showinfo("Event Added", f"{name}: {start_time} - {end_time}")
 
 def add_sleep_schedule():
+    global sleep_block
     start = simpledialog.askstring("Sleep Start", "Enter sleep start time (HH:MM):")
     end = simpledialog.askstring("Sleep End", "Enter wake-up time (HH:MM):")
-    
     if start and end:
-        global sleep_block
         sleep_block = {"start": start, "end": end}
         refresh_planner_display()
         messagebox.showinfo("Sleep Added", f"Sleep: {start} - {end} (recurring daily)")
@@ -166,16 +206,10 @@ def add_assignments():
         return
 
     durations = gemini.prompt_gemini(desc_list, API_KEY)
-    
     assignments.clear()
     for desc, time_est in zip(desc_list, durations):
-        assignments.append({
-            "name": desc,
-            "time": time_est,
-            "start": None,
-            "end": None
-        })
-    
+        assignments.append({"name": desc, "time": time_est, "start": None, "end": None})
+
     messagebox.showinfo(
         "Assignments Added",
         "\n".join([f"{a['name']} - {a['time']} mins" for a in assignments])
@@ -199,9 +233,7 @@ def schedule_assignments():
     for e in events:
         taken_intervals.append((time_to_minutes(e["start"]), time_to_minutes(e["end"])))
 
-    durations = [a["time"] for a in assignments]  # durations without downtime
-
-    # Generate intervals
+    durations = [a["time"] + downtime for a in assignments]  # add downtime to each assignment
     intervals = calendarAlgo.generate_intervals(360, 24*60-1, taken_intervals, durations)
 
     if not intervals:
@@ -210,13 +242,11 @@ def schedule_assignments():
 
     # Apply downtime between assignments
     for i, (a, (start, end)) in enumerate(zip(assignments, intervals)):
-        # Ensure assignment starts after previous event/assignment + downtime
         if i == 0:
             start_with_downtime = start
         else:
             prev_end = time_to_minutes(assignments[i-1]["end"])
             start_with_downtime = max(start, prev_end + downtime)
-        
         a["start"] = minutes_to_time(start_with_downtime)
         a["end"] = minutes_to_time(start_with_downtime + a["time"])
 
