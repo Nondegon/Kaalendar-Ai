@@ -32,7 +32,7 @@ python3 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install requests python-dotenv
 
 # Set your Gemini API key
 export GEMINI_API_KEY="YOUR_API_KEY_HERE"
